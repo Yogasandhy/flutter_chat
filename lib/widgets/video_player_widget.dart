@@ -1,4 +1,5 @@
-import 'package:cached_video_player/cached_video_player.dart';
+import 'package:cached_video_player_plus/cached_video_player_plus.dart';
+import 'package:video_player/video_player.dart';
 import 'package:flutter/material.dart';
 
 class VideoPlayerWidget extends StatefulWidget {
@@ -18,28 +19,29 @@ class VideoPlayerWidget extends StatefulWidget {
 }
 
 class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
-  late CachedVideoPlayerController videoPlayerController;
+  late CachedVideoPlayerPlus _cachedPlayer;
   bool isPlaying = false;
   bool isLoading = true;
 
   @override
   void initState() {
-    videoPlayerController = CachedVideoPlayerController.network(
-      widget.videoUrl,
-    )
-      ..addListener(() {})
-      ..initialize().then((_) {
-        videoPlayerController.setVolume(1);
-        setState(() {
-          isLoading = false;
+    _cachedPlayer = CachedVideoPlayerPlus.networkUrl(
+      Uri.parse(widget.videoUrl),
+    );
+    _cachedPlayer
+        .initialize()
+        .then((_) {
+          _cachedPlayer.controller.setVolume(1);
+          setState(() {
+            isLoading = false;
+          });
         });
-      });
     super.initState();
   }
 
   @override
   void dispose() {
-    videoPlayerController.dispose();
+    _cachedPlayer.dispose();
     super.dispose();
   }
 
@@ -53,7 +55,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
               ? const Center(
                   child: CircularProgressIndicator(),
                 )
-              : CachedVideoPlayer(videoPlayerController),
+              : VideoPlayer(_cachedPlayer.controller),
           Center(
             child: IconButton(
               icon: Icon(
@@ -66,8 +68,8 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                       setState(() {
                         isPlaying = !isPlaying;
                         isPlaying
-                            ? videoPlayerController.play()
-                            : videoPlayerController.pause();
+                            ? _cachedPlayer.controller.play()
+                            : _cachedPlayer.controller.pause();
                       });
                     },
             ),

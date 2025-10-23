@@ -6,13 +6,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_chat_pro/enums/enums.dart';
-import 'package:flutter_chat_pro/models/user_model.dart';
-import 'package:flutter_chat_pro/providers/authentication_provider.dart';
+// removed unused imports
 import 'package:flutter_chat_pro/utilities/assets_manager.dart';
 import 'package:flutter_chat_pro/widgets/friends_list.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
+// provider import removed (unused)
 
 void showSnackBar(BuildContext context, String message) {
   ScaffoldMessenger.of(context).showSnackBar(
@@ -158,12 +157,7 @@ Widget messageToShow({required MessageEnum type, required String message}) {
           ),
         ],
       );
-    default:
-      return Text(
-        message,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      );
+    // no default needed because all MessageEnum cases are handled
   }
 }
 

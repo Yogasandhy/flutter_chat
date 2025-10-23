@@ -2,7 +2,6 @@ class Constants {
 // screens routs
   static const String landingScreen = '/landingScreen';
   static const String loginScreen = '/loginScreen';
-  static const String otpScreen = '/otpScreen';
   static const String userInformationScreen = '/userInformationScreen';
   static const String homeScreen = '/homeScreen';
   static const String chatScreen = '/chatScreen';
@@ -31,7 +30,7 @@ class Constants {
   static const String friendRequestsUIDs = 'friendRequestsUIDs';
   static const String sentFriendRequestsUIDs = 'sentFriendRequestsUIDs';
 
-  static const String verificationId = 'verificationId';
+  
 
   static const String users = 'users';
   static const String userImages = 'userImages';

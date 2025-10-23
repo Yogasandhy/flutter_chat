@@ -1,13 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_pro/constants.dart';
 import 'package:flutter_chat_pro/models/user_model.dart';
 import 'package:flutter_chat_pro/utilities/global_methods.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthenticationProvider extends ChangeNotifier {
@@ -25,29 +26,130 @@ class AuthenticationProvider extends ChangeNotifier {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   // chech authentication state
   Future<bool> checkAuthenticationState() async {
     bool isSignedIn = false;
     await Future.delayed(const Duration(seconds: 2));
 
-    if (_auth.currentUser != null) {
-      _uid = _auth.currentUser!.uid;
-      // get user data from firestore
-      await getUserDataFromFireStore();
+    try {
+      if (_auth.currentUser != null) {
+        _uid = _auth.currentUser!.uid;
 
-      // save user data to shared preferences
-      await saveUserDataToSharedPreferences();
+        // get user data from firestore
+        final exists = await getUserDataFromFireStore();
 
-      notifyListeners();
-
-      isSignedIn = true;
-    } else {
+        if (exists) {
+          // save user data to shared preferences
+          await saveUserDataToSharedPreferences();
+          notifyListeners();
+          isSignedIn = true;
+        } else {
+          // If the user doc doesn't exist in this Firebase project (e.g. you switched google-services.json),
+          // sign out to force a clean login and avoid crashes.
+          await _auth.signOut();
+          isSignedIn = false;
+        }
+      } else {
+        isSignedIn = false;
+      }
+    } catch (_) {
+      // Any unexpected error during boot should not block the app; fall back to login.
       isSignedIn = false;
     }
 
     return isSignedIn;
+  }
+
+  // sign in with Google
+  Future<void> signInWithGoogle({required BuildContext context}) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      UserCredential userCredential;
+
+      if (kIsWeb) {
+        final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        googleProvider.addScope('email');
+        // Force account chooser on web each time
+        googleProvider.setCustomParameters({'prompt': 'select_account'});
+        userCredential = await _auth.signInWithPopup(googleProvider);
+      } else {
+        // Ensure previous Google session is cleared so account chooser shows
+        try {
+          await GoogleSignIn().signOut();
+          await GoogleSignIn().disconnect();
+        } catch (_) {}
+
+        final GoogleSignInAccount? gUser = await GoogleSignIn().signIn();
+        if (gUser == null) {
+          // user aborted
+          _isLoading = false;
+          notifyListeners();
+          return;
+        }
+        final GoogleSignInAuthentication gAuth = await gUser.authentication;
+        final OAuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: gAuth.accessToken,
+          idToken: gAuth.idToken,
+        );
+        userCredential = await _auth.signInWithCredential(credential);
+      }
+
+      final user = userCredential.user!;
+      _uid = user.uid;
+      _phoneNumber = user.phoneNumber ?? '';
+
+      // if user doc doesn't exist, create it with Google profile data
+      final userDocRef = _firestore.collection(Constants.users).doc(_uid);
+      final snapshot = await userDocRef.get();
+      if (!snapshot.exists) {
+        final newUser = UserModel(
+          uid: _uid!,
+          name: user.displayName ?? 'User',
+          phoneNumber: _phoneNumber ?? '',
+          image: user.photoURL ?? '',
+          token: '',
+          aboutMe: "Hey there, I'm using Flutter Chat Pro",
+          lastSeen: DateTime.now().microsecondsSinceEpoch.toString(),
+          createdAt: DateTime.now().microsecondsSinceEpoch.toString(),
+          isOnline: true,
+          friendsUIDs: [],
+          friendRequestsUIDs: [],
+          sentFriendRequestsUIDs: [],
+        );
+
+        await userDocRef.set(newUser.toMap());
+        _userModel = newUser;
+      } else {
+        _userModel =
+            UserModel.fromMap(snapshot.data() as Map<String, dynamic>);
+      }
+
+      // persist locally
+      await saveUserDataToSharedPreferences();
+
+      _isSuccessful = true;
+      _isLoading = false;
+      notifyListeners();
+
+      // navigate to home
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        Constants.homeScreen,
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      _isSuccessful = false;
+      _isLoading = false;
+      notifyListeners();
+      showSnackBar(context, e.message ?? e.code);
+    } catch (e) {
+      _isSuccessful = false;
+      _isLoading = false;
+      notifyListeners();
+      showSnackBar(context, e.toString());
+    }
   }
 
   // chech if user exists
@@ -70,19 +172,27 @@ class AuthenticationProvider extends ChangeNotifier {
   }
 
   // get user data from firestore
-  Future<void> getUserDataFromFireStore() async {
-    DocumentSnapshot documentSnapshot =
+  // returns true if the user document exists and was loaded
+  Future<bool> getUserDataFromFireStore() async {
+    final DocumentSnapshot documentSnapshot =
         await _firestore.collection(Constants.users).doc(_uid).get();
+
+    if (!documentSnapshot.exists) {
+      return false;
+    }
+
     _userModel =
         UserModel.fromMap(documentSnapshot.data() as Map<String, dynamic>);
     notifyListeners();
+    return true;
   }
 
   // save user data to shared preferences
   Future<void> saveUserDataToSharedPreferences() async {
+    if (_userModel == null) return;
     SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
     await sharedPreferences.setString(
-        Constants.userModel, jsonEncode(userModel!.toMap()));
+        Constants.userModel, jsonEncode(_userModel!.toMap()));
   }
 
   // get data from shared preferences
@@ -96,75 +206,7 @@ class AuthenticationProvider extends ChangeNotifier {
   }
 
   // sign in with phone number
-  Future<void> signInWithPhoneNumber({
-    required String phoneNumber,
-    required BuildContext context,
-  }) async {
-    _isLoading = true;
-    notifyListeners();
-
-    await _auth.verifyPhoneNumber(
-      phoneNumber: phoneNumber,
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        await _auth.signInWithCredential(credential).then((value) async {
-          _uid = value.user!.uid;
-          _phoneNumber = value.user!.phoneNumber;
-          _isSuccessful = true;
-          _isLoading = false;
-          notifyListeners();
-        });
-      },
-      verificationFailed: (FirebaseAuthException e) {
-        _isSuccessful = false;
-        _isLoading = false;
-        notifyListeners();
-        showSnackBar(context, e.toString());
-      },
-      codeSent: (String verificationId, int? resendToken) async {
-        _isLoading = false;
-        notifyListeners();
-        // navigate to otp screen
-        Navigator.of(context).pushNamed(
-          Constants.otpScreen,
-          arguments: {
-            Constants.verificationId: verificationId,
-            Constants.phoneNumber: phoneNumber,
-          },
-        );
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {},
-    );
-  }
-
-  // verify otp code
-  Future<void> verifyOTPCode({
-    required String verificationId,
-    required String otpCode,
-    required BuildContext context,
-    required Function onSuccess,
-  }) async {
-    _isLoading = true;
-    notifyListeners();
-
-    final credential = PhoneAuthProvider.credential(
-      verificationId: verificationId,
-      smsCode: otpCode,
-    );
-
-    await _auth.signInWithCredential(credential).then((value) async {
-      _uid = value.user!.uid;
-      _phoneNumber = value.user!.phoneNumber;
-      _isSuccessful = true;
-      _isLoading = false;
-      onSuccess();
-      notifyListeners();
-    }).catchError((e) {
-      _isSuccessful = false;
-      _isLoading = false;
-      notifyListeners();
-      showSnackBar(context, e.toString());
-    });
-  }
+  
 
   // save user data to firestore
   void saveUserDataToFireStore({
@@ -365,6 +407,11 @@ class AuthenticationProvider extends ChangeNotifier {
   }
 
   Future logout() async {
+    // Sign out Google so next login shows account chooser
+    try {
+      await GoogleSignIn().signOut();
+      await GoogleSignIn().disconnect();
+    } catch (_) {}
     await _auth.signOut();
     SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
     await sharedPreferences.clear();

@@ -10,8 +10,7 @@ import 'package:flutter_chat_pro/utilities/global_methods.dart';
 import 'package:flutter_chat_pro/widgets/align_message_left_widget.dart';
 import 'package:flutter_chat_pro/widgets/align_message_right_widget.dart';
 import 'package:flutter_chat_pro/widgets/message_widget.dart';
-import 'package:flutter_chat_reactions/flutter_chat_reactions.dart';
-import 'package:flutter_chat_reactions/utilities/hero_dialog_route.dart';
+// replaced flutter_chat_reactions usage with local implementations
 import 'package:google_fonts/google_fonts.dart';
 import 'package:grouped_list/grouped_list.dart';
 import 'package:provider/provider.dart';
@@ -298,44 +297,100 @@ class _ChatListState extends State<ChatList> {
                   ? const SizedBox.shrink()
                   : GestureDetector(
                       onLongPress: () async {
-                        Navigator.of(context).push(
-                          HeroDialogRoute(builder: (context) {
-                            return ReactionsDialogWidget(
-                              id: element.messageId,
-                              messageWidget: isMe
-                                  ? AlignMessageRightWidget(
-                                      message: message,
-                                      viewOnly: true,
-                                      isGroupChat: widget.groupId.isNotEmpty,
-                                    )
-                                  : AlignMessageLeftWidget(
-                                      message: message,
-                                      viewOnly: true,
-                                      isGroupChat: widget.groupId.isNotEmpty,
+                        // Show a simple dialog with reactions and context menu
+                        await showDialog<void>(
+                          context: context,
+                          builder: (dialogContext) {
+                            return Dialog(
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // message preview
+                                    SizedBox(
+                                      width: MediaQuery.of(context).size.width *
+                                          0.8,
+                                      child: isMe
+                                          ? AlignMessageRightWidget(
+                                              message: message,
+                                              viewOnly: true,
+                                              isGroupChat:
+                                                  widget.groupId.isNotEmpty,
+                                            )
+                                          : AlignMessageLeftWidget(
+                                              message: message,
+                                              viewOnly: true,
+                                              isGroupChat:
+                                                  widget.groupId.isNotEmpty,
+                                            ),
                                     ),
-                              onReactionTap: (reaction) {
-                                if (reaction == '➕') {
-                                  showEmojiContainer(
-                                    messageId: element.messageId,
-                                  );
-                                } else {
-                                  sendReactionToMessage(
-                                    reaction: reaction,
-                                    messageId: element.messageId,
-                                  );
-                                }
-                              },
-                              onContextMenuTap: (item) {
-                                onContextMenyClicked(
-                                  item: item.label,
-                                  message: message,
-                                );
-                              },
-                              widgetAlignment: isMe
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
+                                    const SizedBox(height: 8),
+                                    Wrap(
+                                      spacing: 8,
+                                      children: [
+                                        '👍',
+                                        '❤️',
+                                        '😂',
+                                        '😮',
+                                        '😢',
+                                        '😠',
+                                        '➕'
+                                      ].map((r) {
+                                        return IconButton(
+                                          onPressed: () {
+                                            Navigator.pop(dialogContext);
+                                            if (r == '➕') {
+                                              showEmojiContainer(
+                                                messageId: element.messageId,
+                                              );
+                                            } else {
+                                              sendReactionToMessage(
+                                                reaction: r,
+                                                messageId: element.messageId,
+                                              );
+                                            }
+                                          },
+                                          icon: Text(r),
+                                        );
+                                      }).toList(),
+                                    ),
+                                    const Divider(),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(dialogContext);
+                                        onContextMenyClicked(
+                                          item: 'Reply',
+                                          message: message,
+                                        );
+                                      },
+                                      child: const Text('Reply'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(dialogContext);
+                                        onContextMenyClicked(
+                                          item: 'Copy',
+                                          message: message,
+                                        );
+                                      },
+                                      child: const Text('Copy'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(dialogContext);
+                                        onContextMenyClicked(
+                                          item: 'Delete',
+                                          message: message,
+                                        );
+                                      },
+                                      child: const Text('Delete'),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             );
-                          }),
+                          },
                         );
                       },
                       child: Hero(

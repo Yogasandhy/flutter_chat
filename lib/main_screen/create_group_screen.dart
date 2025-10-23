@@ -13,7 +13,6 @@ import 'package:flutter_chat_pro/widgets/display_user_image.dart';
 import 'package:flutter_chat_pro/widgets/friends_list.dart';
 import 'package:flutter_chat_pro/widgets/group_type_list_tile.dart';
 import 'package:flutter_chat_pro/widgets/settings_list_tile.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:provider/provider.dart';
 

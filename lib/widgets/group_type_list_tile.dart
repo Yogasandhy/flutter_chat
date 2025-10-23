@@ -11,8 +11,8 @@ class GroupTypeListTile extends StatelessWidget {
   });
 
   final String title;
-  GroupType value;
-  GroupType? groupValue;
+  final GroupType value;
+  final GroupType? groupValue;
   final Function(GroupType?) onChanged;
 
   @override

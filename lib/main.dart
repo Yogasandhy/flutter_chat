@@ -3,7 +3,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_pro/authentication/landing_screen.dart';
 import 'package:flutter_chat_pro/authentication/login_screen.dart';
-import 'package:flutter_chat_pro/authentication/opt_screen.dart';
 import 'package:flutter_chat_pro/authentication/user_information_screen.dart';
 import 'package:flutter_chat_pro/constants.dart';
 import 'package:flutter_chat_pro/firebase_options.dart';
@@ -38,7 +37,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key, required this.savedThemeMode});
+  const MyApp({super.key, this.savedThemeMode});
 
   final AdaptiveThemeMode? savedThemeMode;
 
@@ -66,7 +65,6 @@ class MyApp extends StatelessWidget {
         routes: {
           Constants.landingScreen: (context) => const LandingScreen(),
           Constants.loginScreen: (context) => const LoginScreen(),
-          Constants.otpScreen: (context) => const OTPScreen(),
           Constants.userInformationScreen: (context) =>
               const UserInformationScreen(),
           Constants.homeScreen: (context) => const HomeScreen(),

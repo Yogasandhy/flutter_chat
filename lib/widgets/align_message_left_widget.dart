@@ -5,7 +5,7 @@ import 'package:flutter_chat_pro/models/message_model.dart';
 import 'package:flutter_chat_pro/utilities/global_methods.dart';
 import 'package:flutter_chat_pro/widgets/display_message_type.dart';
 import 'package:flutter_chat_pro/widgets/message_reply_preview.dart';
-import 'package:flutter_chat_reactions/widgets/stacked_reactions.dart';
+import 'package:flutter_chat_pro/widgets/reaction_stack.dart';
 
 class AlignMessageLeftWidget extends StatelessWidget {
   const AlignMessageLeftWidget({
@@ -101,9 +101,7 @@ class AlignMessageLeftWidget extends StatelessWidget {
                 Positioned(
                   bottom: 0,
                   left: 50,
-                  child: StackedReactions(
-                    reactions: messageReations,
-                  ),
+                  child: ReactionStack(reactions: messageReations),
                 ),
               ],
             ),

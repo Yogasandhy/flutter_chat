@@ -30,13 +30,13 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void initState() {
-    WidgetsBinding.instance!.addObserver(this);
+    WidgetsBinding.instance.addObserver(this);
     super.initState();
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance!.removeObserver(this);
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -60,9 +60,7 @@ class _HomeScreenState extends State<HomeScreen>
               value: false,
             );
         break;
-      default:
-        // handle other states
-        break;
+      // other states handled above
     }
     super.didChangeAppLifecycleState(state);
   }

@@ -63,16 +63,7 @@ class DisplayMessageType extends StatelessWidget {
                   color: color,
                   viewOnly: viewOnly,
                 );
-        default:
-          return Text(
-            message,
-            style: TextStyle(
-              color: color,
-              fontSize: 16.0,
-            ),
-            maxLines: maxLines,
-            overflow: overFlow,
-          );
+        // all MessageEnum cases handled above
       }
     }
 
